@@ -37,7 +37,9 @@ app.get('/cmd/:hostname/:command', (req, res) => {
         _pendingCommands[req.params.hostname] = req.params.command;
         res.sendStatus(201);
     }
-    res.sendStatus(406);
+    else {
+        res.sendStatus(406);
+    }
 });
 
 app.get('/socket/:hostname/:command', (req, res) => {
