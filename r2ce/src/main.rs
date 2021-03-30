@@ -1,15 +1,14 @@
-use tokio::runtime::Runtime;
+use std::io;
 
 mod pulse_worker;
 
-fn main() {
-    let rt = Runtime::new().unwrap();
+#[tokio::main(flavor = "multi_thread")]
+async fn main() {
+    run().await;
+    io::stdin().read_line(&mut String::new()).unwrap();
+}
 
-    println!("starting rt.block_on");
-
-    rt.block_on(async move {
-        println!("starting async block");
-        pulse_worker::start_pulse();
-    });
-    loop {}
+async fn run() -> () {
+    println!("running ...");
+    pulse_worker::start_pulse();
 }

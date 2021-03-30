@@ -1,3 +1,4 @@
+const { v4: uuidv4 } = require('uuid');
 const express = require('express');
 const app = express();
 const http = require('http').Server(app);
@@ -34,13 +35,15 @@ app.get('/cmd/pending', (req, res) => {
 
 app.get('/cmd/:hostname/:command', (req, res) => {
     if (_activePulseList[req.params.hostname]) {
-        _pendingCommands[req.params.hostname] = req.params.command;
+        _pendingCommands[req.params.hostname] = { command: req.params.command, id: uuidv4() };
         res.sendStatus(201);
     }
     else {
         res.sendStatus(406);
     }
 });
+
+
 
 app.get('/socket/:hostname/:command', (req, res) => {
     if (_socketsByHosts[req.params.hostname]) {
@@ -64,11 +67,19 @@ app.post('/pulse', (req, res) => {
     const pendingCommand = _pendingCommands[req.body.COMPUTERNAME];
     if (pendingCommand) {
         delete _pendingCommands[req.body.COMPUTERNAME];
-        res.status(201).send(pendingCommand);
+        res.status(201).header('cid', pendingCommand.id).send(pendingCommand.command);
     }
     else {
         res.sendStatus(204);
     }
+});
+
+app.post('/pulse/callback/:hostname', (req, res) => {
+    console.log(`>> callback [${req.body.cid}] ${req.params.hostname} ${req.body.command}`);
+    console.log(`\t ${req.body.stdout}`);
+    console.log(`\t ${req.body.stderr}`);
+    console.log(`\t ${req.body.error}`);
+    res.sendStatus(200);
 });
 
 io.on('connection', (socket) => {
