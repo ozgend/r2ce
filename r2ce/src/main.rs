@@ -1,5 +1,3 @@
-use std::io;
-
 mod pulse_worker;
 mod socket_worker;
 
@@ -12,5 +10,5 @@ async fn main() {
 
     // wait until exit
     println!("running. awaiting for input to exit.");
-    io::stdin().read_line(&mut String::new()).unwrap();
+    std::io::stdin().read_line(&mut String::new()).unwrap();
 }

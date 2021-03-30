@@ -17,7 +17,7 @@ const init = () => {
         _socket.onopen = function (a) {
             console.log('ws connect');
             _isConnected = true;
-            _publishData(`hello server`);
+            _publishData(`iam-web-client`);
         };
 
         _socket.onerror = function (err) {

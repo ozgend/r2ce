@@ -1,6 +1,6 @@
 use embedded_websocket::{
     framer::{Framer, FramerError},
-    WebSocketClient, WebSocketCloseStatusCode, WebSocketOptions, WebSocketSendMessageType,
+    WebSocketClient, WebSocketOptions, WebSocketSendMessageType,
 };
 use std::net::TcpStream;
 
@@ -33,17 +33,25 @@ async fn run_socket_async() -> Result<(), FramerError> {
     let mut websocket = Framer::new(&mut read_buf, &mut write_buf, &mut ws_client, &mut stream);
     websocket.connect(&websocket_options)?;
 
-    let message = "Hello, World!";
+    let message = "iam-r2ce-client!";
     websocket.write(WebSocketSendMessageType::Text, true, message.as_bytes())?;
 
-    while let Some(s) = websocket.read_text(&mut frame_buf)? {
+    handle_socket_tx(&mut websocket, &mut frame_buf)?;
+
+    println!("Connection closed");
+    Ok(())
+}
+
+fn handle_socket_tx(
+    websocket: &mut Framer<rand::prelude::ThreadRng, embedded_websocket::Client, TcpStream>,
+    frame_buf: &mut [u8],
+) -> Result<(), FramerError> {
+    while let Some(s) = websocket.read_text(frame_buf)? {
         println!("Received: {}", s);
 
         // close the websocket after receiving the first reply
-        websocket.close(WebSocketCloseStatusCode::NormalClosure, None)?;
-        println!("Sent close handshake");
+        // websocket.close(WebSocketCloseStatusCode::NormalClosure, None)?;
+        // println!("Sent close handshake");
     }
-
-    println!("Connection closed");
     Ok(())
 }
