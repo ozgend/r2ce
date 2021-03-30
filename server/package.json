@@ -2,15 +2,16 @@
   "name": "r2ce-server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node ./src/index.js"
+    "start": "node ./src/server.js"
   },
   "author": "ozgend",
   "license": "ISC",
   "dependencies": {
     "express": "^4.17.1",
     "socket.io": "^4.0.0",
-    "uuid": "^8.3.2"
+    "uuid": "^8.3.2",
+    "ws": "^7.4.4"
   }
 }
