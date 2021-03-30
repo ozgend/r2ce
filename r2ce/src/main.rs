@@ -1,14 +1,16 @@
 use std::io;
 
 mod pulse_worker;
+mod socket_worker;
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() {
-    run().await;
-    io::stdin().read_line(&mut String::new()).unwrap();
-}
+    println!("starting...");
 
-async fn run() -> () {
-    println!("running ...");
-    pulse_worker::start_pulse();
+    pulse_worker::start();
+    socket_worker::start();
+
+    // wait until exit
+    println!("running. awaiting for input to exit.");
+    io::stdin().read_line(&mut String::new()).unwrap();
 }
