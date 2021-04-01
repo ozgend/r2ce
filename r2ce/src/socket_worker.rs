@@ -11,6 +11,20 @@ const SOCKET_URL: &str = "127.0.0.1:6022";
 pub(crate) fn init(tx: tokio::sync::mpsc::UnboundedSender<String>) {
     println!("+ socket_worker::init");
     tx.send("SOCKET.init".to_string()).unwrap();
+    tokio::spawn(async move {
+        let mut interval = time::interval(time::Duration::from_secs(5));
+        loop {
+            let socket_run_result = run_socket_async(tx.clone()).await;
+
+            if socket_run_result.is_ok() {
+                println!("+ socket_worker::init");
+                tx.send("SOCKET.init".to_string()).unwrap();
+            } else {
+                println!("+ socket_worker::retry");
+                interval.tick().await;
+            }
+        }
+    });
 }
 
 async fn run_socket_async(tx: mpsc::UnboundedSender<String>) -> Result<(), FramerError> {
