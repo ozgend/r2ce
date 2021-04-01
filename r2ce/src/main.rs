@@ -5,17 +5,17 @@ mod socket_worker;
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() {
+    println!("[{}] {}", "main", "starting...");
+
     let (tx, mut rx) = unbounded_channel::<String>();
 
     tokio::spawn(async move {
-        println!("rx.receive");
+        println!("[{}] {}", "bus.rx", "init");
 
         while let Some(signal) = rx.recv().await {
-            println!("tx.signal = {}", signal);
+            println!("[{}] {} {}", "bus.rx", "signal", signal);
         }
     });
-
-    println!("starting...");
 
     let tx1 = tx.clone();
     let tx2 = tx.clone();
@@ -24,6 +24,8 @@ async fn main() {
     socket_worker::init(tx2);
 
     // wait until exit
-    println!("running. awaiting for input to exit.");
+    println!("[{}] {}", "main", "running");
     std::io::stdin().read_line(&mut String::new()).unwrap();
+    drop(tx);
+    println!("[{}] {}", "main", "stoppped.");
 }

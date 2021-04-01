@@ -1,44 +1,45 @@
+use std::net::TcpStream;
+
 use embedded_websocket::{
     framer::{Framer, FramerError},
     WebSocketClient, WebSocketOptions, WebSocketSendMessageType,
 };
+use tokio::{sync::mpsc::UnboundedSender, time};
 
-use std::net::TcpStream;
-use tokio::{sync::mpsc, time};
-
+const PROTO: &str = "http";
 const SOCKET_URL: &str = "127.0.0.1:6022";
 
-pub(crate) fn init(tx: tokio::sync::mpsc::UnboundedSender<String>) {
-    println!("+ socket_worker::init");
+pub(crate) fn init(tx: UnboundedSender<String>) {
+    println!("[{}] {}", "socket", "init");
     tx.send("SOCKET.init".to_string()).unwrap();
     tokio::spawn(async move {
         let mut interval = time::interval(time::Duration::from_secs(5));
         loop {
             let socket_run_result = run_socket_async(tx.clone()).await;
-
             if socket_run_result.is_ok() {
-                println!("+ socket_worker::init");
+                println!("[{}] {}", "socket", "started");
                 tx.send("SOCKET.init".to_string()).unwrap();
             } else {
-                println!("+ socket_worker::retry");
+                println!("[{}] {}", "socket", "failed - will retry");
                 interval.tick().await;
             }
         }
     });
 }
 
-async fn run_socket_async(tx: mpsc::UnboundedSender<String>) -> Result<(), FramerError> {
-    println!("+  socket_worker::run_socket_async");
+async fn run_socket_async(tx: UnboundedSender<String>) -> Result<(), FramerError> {
+    println!("[{}] {}", "socket", "run");
 
     let mut read_buf: [u8; 4000] = [0; 4000];
     let mut write_buf: [u8; 4000] = [0; 4000];
     let mut frame_buf: [u8; 4000] = [0; 4000];
     let mut ws_client = WebSocketClient::new_client(rand::thread_rng());
+    let origin = format!("{}://{}", PROTO, SOCKET_URL).to_owned();
 
     let websocket_options = WebSocketOptions {
         path: "/r2ce",
         host: "localhost",
-        origin: "http://127.0.0.1:6022",
+        origin: origin.as_str(),
         sub_protocols: None,
         additional_headers: None,
     };
@@ -52,27 +53,11 @@ async fn run_socket_async(tx: mpsc::UnboundedSender<String>) -> Result<(), Frame
     let message = "iam-r2ce-client!";
     websocket.write(WebSocketSendMessageType::Text, true, message.as_bytes())?;
 
-    while let Some(s) = websocket.read_text(&mut frame_buf)? {
-        println!("Received: {}", s);
+    while let Some(data) = websocket.read_text(&mut frame_buf)? {
+        println!("[{}] {} {}", "socket", "received: ", data);
         tx.send("SOCKET.RECEIVED".to_string()).unwrap();
     }
 
-    // handle_socket_tx(&mut websocket, &mut frame_buf)?;
-
-    println!("Connection closed");
+    println!("[{}] {}", "socket", "closed");
     Ok(())
 }
-
-// fn handle_socket_tx(
-//     websocket: &mut Framer<rand::prelude::ThreadRng, embedded_websocket::Client, TcpStream>,
-//     frame_buf: &mut [u8],
-// ) -> Result<(), FramerError> {
-//     while let Some(s) = websocket.read_text(frame_buf)? {
-//         println!("Received: {}", s);
-
-//         // close the websocket after receiving the first reply
-//         // websocket.close(WebSocketCloseStatusCode::NormalClosure, None)?;
-//         // println!("Sent close handshake");
-//     }
-//     Ok(())
-// }
