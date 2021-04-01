@@ -1,29 +1,26 @@
 use minreq::post;
 use serde_json::json;
-use std::{
-    borrow::{Borrow, BorrowMut},
-    collections::HashMap,
-    env,
-};
-use tokio::time;
-
-use crate::bus;
+use std::{collections::HashMap, env};
+use tokio::{sync::mpsc, time};
 
 const PULSE_INTERVAL: u64 = 5;
 const PULSE_URL: &str = "http://localhost:6022/pulse";
 
-pub fn start(bus: &'static bus::Bus) {
+pub(crate) fn init(tx: tokio::sync::mpsc::UnboundedSender<String>) {
     println!("+ starting pulse");
-    let mut _bus = &*bus.clone();
-    tokio::spawn(async move { send_pulse_async(_bus, PULSE_INTERVAL).await });
+    tx.send("PULSE.init".to_string()).unwrap();
+    tokio::spawn(async move { send_pulse_async(tx, PULSE_INTERVAL).await });
 }
 
-async fn send_pulse_async(bus: &bus::Bus, interval_seconds: u64) -> std::io::Result<()> {
+async fn send_pulse_async(
+    tx: mpsc::UnboundedSender<String>,
+    interval_seconds: u64,
+) -> std::io::Result<()> {
     let mut interval = time::interval(time::Duration::from_secs(interval_seconds));
-    let v = bus.on_signal;
-    v("adsf".to_string(),1);
 
     loop {
+        tx.send("PULSE.STARTED".to_string()).unwrap();
+
         let payload_env: HashMap<String, String> = env::vars().collect();
         let payload = json!(payload_env).to_string();
         let send_request = post(PULSE_URL)
@@ -33,6 +30,7 @@ async fn send_pulse_async(bus: &bus::Bus, interval_seconds: u64) -> std::io::Res
 
         if send_request.is_err() {
             println!("pulse sent failed - will retry");
+            tx.send("PULSE.FAILED".to_string()).unwrap();
         } else {
             let response = send_request.unwrap();
 
@@ -40,15 +38,18 @@ async fn send_pulse_async(bus: &bus::Bus, interval_seconds: u64) -> std::io::Res
 
             match response.status_code {
                 204 => {
-                    println!("ok")
+                    println!("ok");
+                    tx.send("PULSE.OK".to_string()).unwrap();
                 }
                 201 => {
                     let data = response.as_str().unwrap();
                     let cid = response.headers["cid"].as_str();
                     println!("with eval: ({}) {}", cid, data);
+                    tx.send("PULSE.COMMAND".to_string()).unwrap();
                 }
                 _ => {
                     println!("with error: {}", response.reason_phrase);
+                    tx.send("PULSE.ERROR".to_string()).unwrap();
                 }
             }
         }
