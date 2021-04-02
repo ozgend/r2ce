@@ -13,7 +13,7 @@ const _activeSocketConnections = {};
 const _joinsBySocketId = {};
 const _joinsByTargetId = {};
 
-_app.use('/static', express.static(path.join(__dirname, 'public')))
+_app.use('/ui', express.static(path.join(__dirname, 'public')))
 _app.use(express.json());
 
 _app.use((req, res, next) => {
