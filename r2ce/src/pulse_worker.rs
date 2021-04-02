@@ -3,18 +3,22 @@ use serde_json::json;
 use std::{collections::HashMap, env, io::Result};
 use tokio::{sync::mpsc::UnboundedSender, time};
 
+const PROTO: &str = "http";
 const PULSE_INTERVAL: u64 = 5;
-const PULSE_URL: &str = "http://localhost:6022/pulse";
 
-pub(crate) fn init(tx: UnboundedSender<String>) {
+pub(crate) fn init(tx: UnboundedSender<String>, host: String) {
     println!("[{}] {}", "pulse", "init");
     tx.send("PULSE.init".to_string()).unwrap();
-    tokio::spawn(async move { send_pulse_async(tx, PULSE_INTERVAL).await });
+    tokio::spawn(async move { send_pulse_async(tx, host, PULSE_INTERVAL).await });
 }
 
-async fn send_pulse_async(tx: UnboundedSender<String>, interval_seconds: u64) -> Result<()> {
+async fn send_pulse_async(
+    tx: UnboundedSender<String>,
+    host: String,
+    interval_seconds: u64,
+) -> Result<()> {
     println!("[{}] {}", "pulse", "run");
-    
+
     let mut interval = time::interval(time::Duration::from_secs(interval_seconds));
 
     loop {
@@ -22,7 +26,7 @@ async fn send_pulse_async(tx: UnboundedSender<String>, interval_seconds: u64) ->
 
         let payload_env: HashMap<String, String> = env::vars().collect();
         let payload = json!(payload_env).to_string();
-        let send_request = post(PULSE_URL)
+        let send_request = post(format!("{}://{}/pulse", PROTO, host).to_owned())
             .with_header("Content-Type", "application/json")
             .with_body(payload)
             .send();
