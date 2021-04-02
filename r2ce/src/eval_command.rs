@@ -1,4 +1,47 @@
+use serde_derive::{Deserialize, Serialize};
 use std::{collections::HashMap, process::Command};
+
+#[derive(Serialize, Deserialize)]
+pub struct Identifier {
+    pub host: String,
+    pub user: String,
+    pub pid: String,
+    pub os: String,
+    pub arch: String,
+}
+
+impl Identifier {
+    pub fn as_json_string(&self) -> String {
+        return serde_json::to_string(&self).unwrap();
+    }
+}
+
+pub(crate) fn get_identifier() -> Identifier {
+    let id = Identifier {
+        host: get_hostname(),
+        user: get_username(),
+        pid: std::process::id().to_string(),
+        os: std::env::consts::OS.to_string(),
+        arch: std::env::consts::ARCH.to_string(),
+    };
+    return id;
+}
+
+fn get_hostname() -> String {
+    let result: String;
+    match std::env::consts::OS {
+        "macos" => result = evaluate_command("hostname -s")["output"].to_string(),
+        "linux" => result = evaluate_command("hostname -s")["output"].to_string(),
+        "windows" => result = evaluate_command("hostname")["output"].to_string(),
+        _ => result = evaluate_command("hostname -s")["output"].to_string(),
+    }
+    return result.trim().to_string();
+}
+
+fn get_username() -> String {
+    let result = evaluate_command("whoami")["output"].to_string();
+    return result.trim().to_string();
+}
 
 pub(crate) fn evaluate_command(command: &str) -> HashMap<String, String> {
     let result = _execute(command);
