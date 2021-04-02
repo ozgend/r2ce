@@ -2,6 +2,7 @@ use tokio::sync::mpsc::unbounded_channel;
 
 mod pulse_worker;
 mod socket_worker;
+mod eval_command;
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() {
