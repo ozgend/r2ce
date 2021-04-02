@@ -1,0 +1,92 @@
+html,
+body,
+input,
+option,
+select,
+div {
+  background-color: #222222;
+  color: rgb(140, 140, 140);
+  border: none;
+  outline: none;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+html,
+body,
+section {
+  overflow: hidden;
+  padding: none;
+  margin: none;
+  font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+}
+
+section.cli {
+  height: 88vh;
+  padding: 1em 0.5em;
+}
+
+section.clients {
+  display: grid;
+  grid-column-gap: 50px;
+  column-count: 2;
+  height: 10vh;
+}
+
+div.client-summary {
+  grid-column: 1;
+  font-size: small;
+  grid-row: 1;
+}
+
+div.client-summary span {
+  font-weight: bold;
+}
+
+select.client-list {
+  height: 100%;
+  grid-column: 2;
+  grid-row: 1;
+}
+
+option[disabled] {
+  font-style: italic;
+  color: rgb(86 160 122 / 50%);
+}
+
+input.command-input {
+  width: 90%;
+  font-weight: bold;
+}
+
+span.command-prefix {
+  font-size: small;
+  font-weight: bold;
+  color: rgb(86 160 122);
+}
+
+div.command-history {
+  width: 100%;
+  max-height: 85vh;
+  scroll-behavior: smooth;
+  overflow-y: scroll;
+  overflow: hidden;
+  font-size: small;
+}
+
+div.command-history span {
+  display: block;
+}
+
+div.command-history span.input {
+  margin-top: 8px;
+  font-weight: bold;
+  color: rgb(86 160 122);
+}
+
+div.command-history span.output {
+  color: rgb(86, 157, 160);
+}
+
+div.command-history span.error {
+  color: rgb(160, 86, 86);
+}
