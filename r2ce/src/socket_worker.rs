@@ -10,15 +10,14 @@ use tokio::{sync::mpsc::UnboundedSender, time};
 use crate::eval_command;
 
 const PROTO: &str = "http";
-const SOCKET_URL: &str = "127.0.0.1:6022";
 
-pub(crate) fn init(tx: UnboundedSender<String>) {
+pub(crate) fn init(tx: UnboundedSender<String>, host: String) {
     println!("[{}] {}", "socket", "init");
     tx.send("SOCKET.init".to_string()).unwrap();
     tokio::spawn(async move {
         let mut interval = time::interval(time::Duration::from_secs(5));
         loop {
-            let socket_run_result = run_socket_async(tx.clone()).await;
+            let socket_run_result = run_socket_async(tx.clone(), host.clone()).await;
             if socket_run_result.is_ok() {
                 println!("[{}] {}", "socket", "started");
                 tx.send("SOCKET.init".to_string()).unwrap();
@@ -30,16 +29,15 @@ pub(crate) fn init(tx: UnboundedSender<String>) {
     });
 }
 
-async fn run_socket_async(tx: UnboundedSender<String>) -> Result<(), FramerError> {
+async fn run_socket_async(tx: UnboundedSender<String>, host: String) -> Result<(), FramerError> {
     println!("[{}] {}", "socket", "run");
-
     let mut read_buf: [u8; 4000] = [0; 4000];
     let mut write_buf: [u8; 4000] = [0; 4000];
     let mut frame_buf: [u8; 4000] = [0; 4000];
     let mut socket_id = "non-id".to_string();
 
     let mut ws_client = WebSocketClient::new_client(rand::thread_rng());
-    let origin = format!("{}://{}", PROTO, SOCKET_URL).to_owned();
+    let origin = format!("{}://{}", PROTO, host).to_owned();
 
     let websocket_options = WebSocketOptions {
         path: "/r2ce",
@@ -49,7 +47,7 @@ async fn run_socket_async(tx: UnboundedSender<String>) -> Result<(), FramerError
         additional_headers: None,
     };
 
-    let mut stream = TcpStream::connect(SOCKET_URL)?;
+    let mut stream = TcpStream::connect(host)?;
     let mut websocket = Framer::new(&mut read_buf, &mut write_buf, &mut ws_client, &mut stream);
     websocket.connect(&websocket_options)?;
 
