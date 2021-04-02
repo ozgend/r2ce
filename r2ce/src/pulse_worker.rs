@@ -1,7 +1,8 @@
 use minreq::post;
-use serde_json::json;
-use std::{collections::HashMap, env, io::Result};
+use std::io::Result;
 use tokio::{sync::mpsc::UnboundedSender, time};
+
+use crate::eval_command;
 
 const PROTO: &str = "http";
 const PULSE_INTERVAL: u64 = 5;
@@ -20,15 +21,14 @@ async fn send_pulse_async(
     println!("[{}] {}", "pulse", "run");
 
     let mut interval = time::interval(time::Duration::from_secs(interval_seconds));
+    let identifier = eval_command::get_identifier();
+    let payload = identifier.as_json_string();
 
     loop {
         tx.send("PULSE.STARTED".to_string()).unwrap();
-
-        let payload_env: HashMap<String, String> = env::vars().collect();
-        let payload = json!(payload_env).to_string();
         let send_request = post(format!("{}://{}/pulse", PROTO, host).to_owned())
             .with_header("Content-Type", "application/json")
-            .with_body(payload)
+            .with_body(payload.to_string())
             .send();
 
         if send_request.is_err() {

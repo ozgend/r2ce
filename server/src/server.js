@@ -6,12 +6,15 @@ const path = require('path');
 const _port = 6022;
 const _app = express();
 const _actions = { listjoins: 'listjoins', join: 'join', forward: 'forward', respond: 'respond', leave: 'leave', id: 'id' };
-const _target = { server: 'server', web: 'web' };
+const _target = { server: 'server', web: 'web', client: 'r2ce' };
 const _activePulseList = {};
 const _pendingCommands = {};
 const _activeSocketConnections = {};
 const _joinsBySocketId = {};
 const _joinsByTargetId = {};
+
+const _nics = require('os').networkInterfaces();
+const _lanIp = ((_nics.Ethernet || [])[0] || {}).address || '0.0.0.0';
 
 _app.use('/ui', express.static(path.join(__dirname, 'public')))
 _app.use(express.json());
@@ -33,9 +36,9 @@ _app.get('/command/pending', (req, res) => {
     res.send(_pendingCommands);
 });
 
-_app.get('/command/:hostname/:cmd', (req, res) => {
-    if (_activePulseList[req.params.hostname]) {
-        _pendingCommands[req.params.hostname] = { command: req.params.cmd, id: uuidv4() };
+_app.get('/command/:host/:cmd', (req, res) => {
+    if (_activePulseList[req.params.host]) {
+        _pendingCommands[req.params.host] = { command: req.params.cmd, id: uuidv4() };
         res.sendStatus(201);
     }
     else {
@@ -48,16 +51,16 @@ _app.get('/pulse/list', (req, res) => {
 });
 
 _app.post('/pulse', (req, res) => {
-    console.log(`>> incoming pulse from ${req.body.COMPUTERNAME} @ ${req.body.HOMEPATH}`);
+    console.log(`>> incoming pulse from ${req.body.host} @ ${req.body.user}`);
 
-    _activePulseList[req.body.COMPUTERNAME] = {
+    _activePulseList[req.body.host] = {
         env: req.body,
         expires: Date.now() + 60 * 1000
     };
 
-    const pendingCommand = _pendingCommands[req.body.COMPUTERNAME];
+    const pendingCommand = _pendingCommands[req.body.host];
     if (pendingCommand) {
-        delete _pendingCommands[req.body.COMPUTERNAME];
+        delete _pendingCommands[req.body.host];
         res.status(201).header('cid', pendingCommand.id).send(pendingCommand.command);
     }
     else {
@@ -103,11 +106,12 @@ const handleMessageBroker = (socket, data) => {
     /// actions: join, leave, forward, respond
     /// target: server, web, socket.id
 
-    // join<<<server<<<identifier_name
-    // leave<<<server<<<identifier_name
+    // join<<<server<<<host@pid
+    // leave<<<server<<<socket_id
+    // id<<<r2ce<<<socket_id
 
     // forward<<<socket_id<<<command_text
-    // respond<<<hostname<<<command_text
+    // respond<<<socket_id<<<command_result
 
 
     const args = data.split('<<<');
@@ -181,7 +185,9 @@ const handleMessageBroker = (socket, data) => {
 }
 
 const server = _app.listen(_port, () => {
-    console.log(`r2ce-server @ http://localhost:${_port}`)
+    console.log(`r2ce-server`);
+    console.log(`            @ http://localhost:${_port}`);
+    console.log(`            @ http://${_lanIp}:${_port}`);
 });
 
 const wss = new ws.Server({ noServer: true });
@@ -191,7 +197,7 @@ wss.on('connection', (socket, request) => {
 
     console.log(`+  wss.connection [${socket.id}]`);
 
-    socket.send(`id<<<r2ce<<<${socket.id}`);
+    socket.send(`${_actions.id}<<<${_target.client}<<<${socket.id}`);
     addSocketConnection(socket);
 
     socket.on('message', (data) => {
