@@ -8,15 +8,15 @@ mod eval_command;
 async fn main() {
     println!("[{}] {}", "main", "starting...");
 
-    let (tx, mut rx) = unbounded_channel::<String>();
+    let (tx, _rx) = unbounded_channel::<String>();
 
-    tokio::spawn(async move {
-        println!("[{}] {}", "bus.rx", "init");
+    // tokio::spawn(async move {
+    //     println!("[{}] {}", "bus.rx", "init");
 
-        while let Some(signal) = rx.recv().await {
-            println!("[{}] {} {}", "bus.rx", "signal", signal);
-        }
-    });
+    //     while let Some(signal) = rx.recv().await {
+    //         println!("[{}] {} {}", "bus.rx", "signal", signal);
+    //     }
+    // });
 
     let tx1 = tx.clone();
     let tx2 = tx.clone();

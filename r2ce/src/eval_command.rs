@@ -3,8 +3,9 @@ use std::{collections::HashMap, process::Command};
 pub(crate) fn evaluate_command(command: &str) -> HashMap<String, String> {
     let result = _execute(command);
 
-    println!("[ieval] stdout:>>>>");
+    println!("[ieval] result:>>>>");
     println!("{}", result["output"]);
+    println!("{}", result["error"]);
     println!("[ieval] <<<<");
 
     return result;
@@ -27,6 +28,7 @@ fn _execute(command_string: &str) -> HashMap<String, String> {
     if output.is_err() {
         println!("-  failed to eval: {}", command_string);
         result.insert("error".to_string(), "failed to eval".to_string());
+        result.insert("output".to_string(), "error".to_string());
     } else {
         unsafe {
             let output_result = output.unwrap();

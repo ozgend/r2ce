@@ -58,7 +58,7 @@ async fn run_socket_async(tx: UnboundedSender<String>) -> Result<(), FramerError
     // send join message
     let env_vars: HashMap<String, String> = env::vars().collect();
     let hostname = &env_vars["COMPUTERNAME"];
-    let message = format!("join<<<server<<<{}", hostname);
+    let message = format!("join<<<server<<<{}@{}", hostname, std::process::id());
     websocket.write(WebSocketSendMessageType::Text, true, message.as_bytes())?;
 
     while let Some(data) = websocket.read_text(&mut frame_buf)? {
