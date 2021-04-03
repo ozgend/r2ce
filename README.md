@@ -2,6 +2,8 @@
 
 provides remote command execution. learning project for rust, with nodejs and support for websocket. all for fun, not suitable for production use.
 
+![preview](./r2ce.gif)
+
 ---
 
 ### local run
